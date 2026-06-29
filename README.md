@@ -39,6 +39,19 @@ Apply it to write a new MIDI file:
 make run ARGS='apply song.mid edits.txt -o changed.mid'
 ```
 
+Or pipe edits through stdin:
+
+```sh
+cat edits.txt | cargo run --bin midy -- apply song.mid changed.mid
+```
+
+If you omit the output MIDI path while piping, `midy` overwrites the input after
+the edit text and MIDI file parse successfully:
+
+```sh
+cat edits.txt | cargo run --bin midy -- apply song.mid
+```
+
 `write` is an alias for `apply`.
 
 `apply` can also consume a modified timeline: read-only lines such as `HEADER`,
@@ -49,6 +62,12 @@ Print the full edit grammar:
 
 ```sh
 make run ARGS='schema'
+```
+
+Print the long manual:
+
+```sh
+make run ARGS='--man'
 ```
 
 Supported edit commands:
@@ -68,10 +87,12 @@ Supported edit commands:
 ```sh
 make build
 make run ARGS='--help'
+make run ARGS='--man'
 make run ARGS='--version'
 make run ARGS='schema'
 make run ARGS='read song.mid'
 make run ARGS='apply song.mid edits.txt -o changed.mid'
+cat edits.txt | cargo run --bin midy -- apply song.mid changed.mid
 make test
 make verify
 make release TYPE=patch

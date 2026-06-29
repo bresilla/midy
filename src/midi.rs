@@ -16,6 +16,8 @@ Read:
 
 Write/apply:
   midy apply input.mid edits.txt -o output.mid
+  cat edits.txt | midy apply input.mid output.mid
+  cat edits.txt | midy apply input.mid
 
 Accepted edit lines:
   ADD_NOTE track=0 ch=0 key=60 start=0 dur=480 vel=96 [off_vel=64]
