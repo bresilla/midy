@@ -6,6 +6,17 @@ song by writing lines like `TRANSPOSE semitones=2 track=1`.
 
 It is built on [`midly`](https://github.com/kovaxis/midly).
 
+## Install
+
+```sh
+nix run github:bresilla/midy -- --help
+nix profile install github:bresilla/midy
+```
+
+The flake is a full package with `packages`, `apps` and `checks`, and its
+`midy` wrapper brings FluidSynth for `render`. Linux builds are served from
+`https://cache.bresilla.com/bresilla`; pass `--accept-flake-config` to use them.
+
 ## Quick start
 
 ```sh

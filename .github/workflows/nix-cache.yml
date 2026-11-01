@@ -1,0 +1,87 @@
+name: nix-cache
+
+on:
+  push:
+    tags: ['[0-9]*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nix-cache
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.repository == 'bresilla/midy'
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            system: x86_64-linux
+          - runner: ubuntu-24.04-arm
+            system: aarch64-linux
+    steps:
+      - name: Check publishing credentials
+        env:
+          ATTIC_TOKEN: ${{ secrets.ATTIC_TOKEN }}
+          PIN_TOKEN: ${{ secrets.PIN_TOKEN }}
+        run: |
+          if [ -z "$ATTIC_TOKEN" ] || [ -z "$PIN_TOKEN" ]; then
+            echo "::error::Add the ATTIC_TOKEN and PIN_TOKEN Actions secrets for cache.bresilla.com."
+            exit 1
+          fi
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+      - uses: cachix/install-nix-action@b85815f71a6de0ddee80b8a80a98d43f4bcc66c7
+        with:
+          extra_nix_config: |
+            extra-substituters = https://cache.bresilla.com/bresilla
+            extra-trusted-public-keys = bresilla:zsecaZYIrjCJQS4AuGPmEVU5PRkiMmB/Mds3KaCzTvE=
+      - name: Build midy with install checks
+        run: |
+          nix build --accept-flake-config --no-update-lock-file --print-build-logs \
+            --no-link --print-out-paths .#midy > "$RUNNER_TEMP/midy-store-paths"
+          test "$(wc -l < "$RUNNER_TEMP/midy-store-paths")" -eq 1
+      - name: Collect store paths and pins
+        id: release
+        env:
+          SYSTEM: ${{ matrix.system }}
+        run: |
+          path=$(cat "$RUNNER_TEMP/midy-store-paths")
+          { echo "paths=$path"; echo "pins=midy-$SYSTEM $path"; } >> "$GITHUB_OUTPUT"
+      # Only paths cache.nixos.org lacks; see bresilla/nixos .github/actions/attic-push.
+      - uses: bresilla/nixos/.github/actions/attic-push@main
+        with:
+          paths: ${{ steps.release.outputs.paths }}
+          pins: ${{ steps.release.outputs.pins }}
+          attic-token: ${{ secrets.ATTIC_TOKEN }}
+          pin-token: ${{ secrets.PIN_TOKEN }}
+
+  verify-download:
+    needs: publish
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-24.04, ubuntu-24.04-arm]
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+      - uses: cachix/install-nix-action@b85815f71a6de0ddee80b8a80a98d43f4bcc66c7
+        with:
+          extra_nix_config: |
+            extra-substituters = https://cache.bresilla.com/bresilla
+            extra-trusted-public-keys = bresilla:zsecaZYIrjCJQS4AuGPmEVU5PRkiMmB/Mds3KaCzTvE=
+      - name: Download midy without builders and smoke test it
+        run: |
+          midy=$(nix build --accept-flake-config --no-update-lock-file \
+            --max-jobs 0 --builders '' --no-link --print-out-paths .#midy)
+          bash tools/nix-smoke.sh "$midy"
