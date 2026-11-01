@@ -1,0 +1,73 @@
+midy - edit MIDI files as text
+
+Usage:
+  midy read <input.mid> [--format midy|json|csv] [--track N] [--ch N] [--key K]
+            [--bars A..B] [--start T] [--end T] [--events all|basic|none] [--compact]
+  midy apply <input.mid> <edits.txt> -o <output.mid>
+  midy apply <input.mid> -e 'TRANSPOSE semitones=2' -o <output.mid>
+  midy apply <input.mid> <output.mid>        # read edits from stdin
+  midy apply <input.mid>                     # read edits from stdin and overwrite
+  midy apply <input.mid> <edits.txt> --dry-run
+  midy suggest reduce-chords <input.mid> [--keep highest|lowest|root|nth=N]
+  midy suggest bass <input.mid> [--out-track N] [--out-ch N]
+  midy chords <input.mid> [--include-drums]
+  midy roll <input.mid> [--mode compact|verbose] [--max-columns N]
+  midy analyze <input.mid> [--json]
+  midy tracks <input.mid>
+  midy lint <input.mid> [--exit-code]
+  midy fix <input.mid> <output.mid> [--stuck-mode remove|close] [--remove-empty-tracks]
+  midy humanize <input.mid> <output.mid> [--timing N] [--velocity N] [--seed N]
+  midy dehumanize <input.mid> <output.mid> [--grid GRID] [--mode start|duration|both]
+  midy swing <input.mid> <output.mid> [--amount 50..100] [--grid GRID]
+  midy chordize <input.mid> <output.mid> [--quality maj|min|...] [--intervals 0,4,7]
+  midy arpeggiate <input.mid> <output.mid> [--grid GRID] [--order up|down|updown|outside]
+  midy extract <input.mid> (--track N|--ch N) <output.mid>
+  midy mute <input.mid> (--track N|--ch N) <output.mid>
+  midy solo <input.mid> (--track N|--ch N) <output.mid>
+  midy split <input.mid> --by track|channel --out-dir <dir>
+  midy merge <input-a.mid> <input-b.mid> [...input.mid] -o <output.mid>
+  midy diff <before.mid> <after.mid> [--exit-code]
+  midy render <input.mid> <output.wav|output.flac> --soundfont <file.sf2>
+  midy schema
+  midy --man
+  midy [OPTIONS]
+
+Options:
+  -h, --help       Show this help message
+      --man        Show the detailed manual
+  -V, --version    Show version information
+
+Apply options:
+  -o, --output     Output path
+  -e, --edit LINE  Edit line given inline; repeatable
+      --dry-run    Report what would change without writing
+      --strict     Fail on anything that would only warn
+      --prune      Delete notes a full timeline no longer lists
+      --format     Edit format: auto, text, json, or csv
+
+Commands:
+  read     Print a deterministic ASCII timeline for a MIDI file
+  apply    Apply ASCII edit commands and write a new MIDI file
+  write    Alias for apply
+  suggest  Print generated edit commands
+  chords   Print detected chord slices
+  roll     Print an ASCII piano-roll view
+  analyze  Print a high-level MIDI analysis
+  tracks   Print track/channel summaries
+  lint     Print MIDI quality warnings
+  fix      Repair common note-level MIDI problems
+  humanize Randomize note starts/velocities reproducibly
+  dehumanize Quantize note starts/durations
+  swing    Delay off-grid subdivisions
+  chordize Add chord tones above matching notes
+  arpeggiate Turn simultaneous chord stacks into arpeggios
+  extract  Write a MIDI containing only selected track/channel notes
+  mute     Write a MIDI with selected track/channel notes removed
+  solo     Alias-style operation: keep only selected track/channel notes
+  split    Write one MIDI per source track or channel
+  merge    Merge multiple MIDI files into one parallel-track MIDI
+  diff     Print edit commands that turn one file into another
+  render   Render MIDI to audio by shelling out to FluidSynth
+  schema   Print the ASCII edit format accepted by apply/write
+
+Exit status: 0 success, 1 failure or findings with --exit-code, 2 usage error.
