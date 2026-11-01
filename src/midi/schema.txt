@@ -1,0 +1,99 @@
+MIDY_EDIT_FORMAT v1
+
+Read:
+  midy read input.mid [--track N] [--ch N] [--key K] [--bars A..B]
+                      [--start T] [--end T] [--events all|basic|none]
+                      [--compact] [--format midy|json|csv]
+
+Write/apply:
+  midy apply input.mid edits.txt -o output.mid
+  midy apply input.mid edited.json -o output.mid
+  midy apply input.mid edited.csv -o output.mid
+  midy apply input.mid -e 'TRANSPOSE semitones=2' -o output.mid
+  cat edits.txt | midy apply input.mid output.mid
+  cat edits.txt | midy apply input.mid
+  midy apply input.mid edits.txt --dry-run
+
+Note edits:
+  ADD_NOTE track=0 ch=0 key=60 start=0 dur=480 vel=96 [off_vel=64]
+  ADD_NOTE track=0 ch=0 key=C4 at=2:1 dur=1/4 vel=96
+  NOTE id=t0n0 track=0 ch=0 key=62 start=0 dur=240 vel=96 off_vel=64
+  SET_NOTE id=t0n0 key=62 start=0 dur=240 vel=96 off_vel=64
+  DELETE_NOTE id=t0n0
+  DELETE_NOTES (FILTER|all=true)
+  TRANSPOSE semitones=2 [FILTER]
+  SHIFT ticks=120 [notes_only=true] [FILTER]
+  SHIFT by=1/8 [notes_only=true] [FILTER]
+  SCALE_TIME factor=2/1 [notes_only=true] [FILTER]
+  SCALE_DURATION factor=1/2 [FILTER]
+  QUANTIZE grid=1/16 [mode=start|duration|both] [FILTER]
+  HUMANIZE timing=12 velocity=8 seed=1 [FILTER]
+  DEHUMANIZE grid=1/16 [mode=start|duration|both] [FILTER]
+  SWING amount=55 grid=1/8 [FILTER]
+  VELOCITY scale=0.8 [FILTER]
+  VELOCITY add=10 [FILTER]
+  VELOCITY set=96 [FILTER]
+  VELOCITY compress=0.5 center=80 [FILTER]
+  CRESCENDO start_vel=40 end_vel=110 [FILTER]
+  CHORDIZE quality=maj [FILTER]
+  CHORDIZE intervals=0,3,7 [FILTER]
+  ARPEGGIATE grid=1/16 [order=up|down|updown|outside] [FILTER]
+  BLOCK_CHORD grid=1/8 [FILTER]
+  INVERT_CHORDS inversion=1 [FILTER]
+  DOUBLE octave=-1 [FILTER]
+  VOICE_LEAD max_jump=7 [FILTER]
+  MUTE (FILTER|all=true)
+  SOLO (FILTER|all=true)
+  MOVE_TRACK from=2 to=1 [ch=0] [key=60] [start=0] [end=960] [bars=1..4]
+  SET_CHANNEL track=1 ch=0 [from_ch=1]
+
+Event and track edits:
+  SET_TEMPO bpm=140 [at=2:1|tick=960]
+  SET_PROGRAM track=1 ch=0 program=33 [at=2:1|tick=960]
+  ADD_EVENT track=1 tick=0 kind=cc ch=0 controller=64 value=127
+  ADD_EVENT track=1 tick=0 kind=pitch_bend ch=0 value=-8192
+  ADD_EVENT track=1 tick=0 kind=channel_aftertouch ch=0 pressure=40
+  ADD_EVENT track=1 tick=0 kind=poly_aftertouch ch=0 key=60 pressure=40
+  ADD_EVENT track=0 tick=0 kind=time_signature numerator=6 denominator=8
+  ADD_EVENT track=0 tick=0 kind=key_signature sharps=-1 minor=true
+  ADD_EVENT track=0 tick=0 kind=marker text="Verse 1"
+  ADD_EVENT track=1 tick=0 kind=sysex hex=7e7f0901f7
+  DELETE_EVENT <same fields as ADD_EVENT>
+  DELETE_EVENTS kind=cc [controller=64] [track=1] [ch=0] [start=0] [end=960]
+  DELETE_EVENTS (kind=K|track=N|ch=N|bars=A..B|start=T|end=T|all=true)
+  ADD_TRACK [name="Strings"]
+  SET_TRACK_NAME track=1 name="Lead Synth"
+
+FILTER is any of:
+  track=N  ch=N  key=K  start=T  end=T  bars=A..B  bar=N  drums=true|false|only
+
+Rules:
+  - an unknown field or a bare value on a line is an error, never ignored
+  - a filter that names a missing track is an error
+  - a command that matches nothing warns; --strict makes warnings errors
+  - time fields are integer ticks, or BAR:BEAT[:TICK] in metrical files
+  - bar and pos values use the time-signature map of the input file
+  - lengths are ticks, or in metrical files 1/4, 1/8t, beat, or bar;
+    beat and bar use the meter active at the note, filter start, or tick 0
+  - filter start/end select by note start tick, with end exclusive
+  - ch is the MIDI channel 0..15, so General MIDI drums are ch=9
+  - pitch commands skip ch=9 unless ch=9 or drums=true is given:
+    TRANSPOSE, CHORDIZE, ARPEGGIATE, BLOCK_CHORD, INVERT_CHORDS, DOUBLE, VOICE_LEAD
+  - key accepts MIDI values 0..127 or note names like C4/F#3/Bb2
+  - note-on velocity is 1..127; off_vel is 0..127
+  - factor accepts N, N/D, or decimal forms like 0.5
+  - SHIFT and SCALE_TIME also move controllers, bends and aftertouch that match
+    the filter; with no filter at all they move every event and the track end
+  - SHIFT leaves events at tick 0 in place; notes_only=true leaves all events
+  - quote values with spaces: name="Lead Synth"
+
+Timelines:
+  - HEADER, SONG, TRACK, META, EVENT, STUCK and comments are ignored by apply
+  - a changed META or EVENT line warns, because those lines are read-only
+  - in NOTE lines, name/pos/end/end_pos restate key/start/dur; edit whichever you
+    like, and if you change both spellings of a value they must agree
+  - a timeline line that is removed leaves its note alone and warns;
+    apply --prune deletes those notes instead
+  - JSON and CSV rows: matching ids update, missing ids are deleted, and rows
+    with a blank or new id are added
+  - a scoped read records its selection, so notes outside it are never deleted

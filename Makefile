@@ -1,9 +1,9 @@
-SHELL := /bin/bash
+SHELL := bash
 
 PROJECT_NAME := $(shell if [ -f PROJECT ]; then sed -n '/^[[:space:]]*[^#\[[:space:]]/p' PROJECT | head -1 | tr -d '[:space:]'; else sed -n 's/^[[:space:]]*name[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' Cargo.toml | head -1; fi)
 PROJECT_VERSION := $(shell if [ -f PROJECT ]; then sed -n '/^[[:space:]]*[^#\[[:space:]]/p' PROJECT | sed -n '2p' | tr -d '[:space:]'; else sed -n 's/^[[:space:]]*version[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' Cargo.toml | head -1; fi)
 ifeq ($(PROJECT_NAME),)
-    $(error Error: PROJECT file not found or invalid)
+    $(error could not read a project name from PROJECT or Cargo.toml; is '$(SHELL)' on PATH?)
 endif
 
 TOP_DIR := $(CURDIR)
@@ -16,7 +16,7 @@ $(info ------------------------------------------)
 $(info Project: $(PROJECT_NAME) v$(PROJECT_VERSION))
 $(info ------------------------------------------)
 
-.PHONY: build b compile c run r test t check check-all test-all clippy rustdoc fmt fmt-check clean verify release help h
+.PHONY: build b compile c run r test t check check-all test-all clippy rustdoc fmt fmt-check lock-check clean verify release help h
 
 build:
 	@$(CARGO) build --all-targets
@@ -60,10 +60,13 @@ rustdoc:
 test-all:
 	@$(CARGO) test --all-targets --all-features
 
+lock-check:
+	@$(CARGO) metadata --locked --format-version 1 > /dev/null
+
 clean:
 	@$(CARGO) clean
 
-verify: fmt-check check test check-all test-all clippy rustdoc
+verify: lock-check fmt-check check test check-all test-all clippy rustdoc
 
 release:
 	@if [ -z "$(HAS_REL)" ]; then \
@@ -92,7 +95,8 @@ help:
 	@echo "  rustdoc      Build docs with warnings denied"
 	@echo "  fmt          Format the workspace"
 	@echo "  fmt-check    Check formatting"
-	@echo "  clean        Remove Cargo build artifacts"
+	@echo "  lock-check   Fail if Cargo.lock is out of date"
+	@echo "  clean      Remove Cargo build artifacts"
 	@echo "  verify       Run the full local gate"
 	@echo "  release      Release a new version"
 	@echo

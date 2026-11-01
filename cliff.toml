@@ -17,13 +17,8 @@ body = """
 # remove the leading and trailing whitespace from the template
 trim = true
 
-footer = """
-<!-- WARP -->
-"""
-
-
 postprocessors = [
-  { pattern = '<REPO>', replace = "https://github.com/warpwm/lule" }, # replace repository URL
+  { pattern = '<REPO>', replace = "https://github.com/bresilla/midy" }, # replace repository URL
 ]
 
 
@@ -60,7 +55,7 @@ protect_breaking_commits = false
 # filter out the commits that are not matched by commit parsers
 filter_commits = false
 # glob pattern for matching git tags
-tag_pattern = "v[0-9]*"
+tag_pattern = "[0-9]*"
 # regex for skipping tags
 skip_tags = "beta|alpha"
 # regex for ignoring tags
